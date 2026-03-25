@@ -7,12 +7,16 @@ on:
       - "client/**"
     branches:
       - master
-      - release/*
+    tags: ['v*']
   pull_request:
     types:
       - opened
       - synchronize
       - reopened
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   build-server:
@@ -65,7 +69,9 @@ jobs:
         run: mvn spring-boot:build-image --file server/pom.xml -DskipTests
 
       - name: Login to DockerHub Registry
+        if: github.ref_type == 'tag'
         run: echo ${{ secrets.DOCKERHUB_PASSWORD }} | docker login -u ${{ secrets.DOCKERHUB_USERNAME }} --password-stdin
 
       - name: Push Docker Image
+        if: github.ref_type == 'tag'
         run: docker push hantsy/angular-spring-reactive-sample-server
